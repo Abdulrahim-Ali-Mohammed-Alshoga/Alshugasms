@@ -1,0 +1,74 @@
+name: Android Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - '[0-9]*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify version matches tag
+        run: |
+          # Extract versionName from build.gradle
+          VERSION_NAME=$(grep 'versionName' app/build.gradle | head -1 | sed 's/.*versionName "\(.*\)"/\1/')
+          # Get tag name (remove refs/tags/ prefix and 'v' if present)
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          TAG_VERSION="${TAG_NAME#v}"
+          
+          echo "Version from build.gradle: $VERSION_NAME"
+          echo "Version from tag: $TAG_VERSION"
+          
+          if [ "$VERSION_NAME" != "$TAG_VERSION" ]; then
+            echo "::error::Version mismatch! build.gradle has '$VERSION_NAME' but tag is '$TAG_VERSION'"
+            exit 1
+          fi
+          echo "✅ Version check passed!"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew assembleRelease
+
+      - name: Sign APK
+        uses: r0adkll/sign-android-release@v1
+        id: sign_app
+        with:
+          releaseDirectory: app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.KEYSTORE }}
+          alias: ${{ secrets.KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: "34.0.0"
+
+      - name: Prepare Release Artifacts
+        run: |
+          mkdir -p release_artifacts
+          find app/build/outputs/apk/release -name "MsgGo-*-signed.apk" | while read -r apk; do
+            NEW_NAME=$(basename "$apk" | sed 's/-signed//')
+            mv "$apk" "release_artifacts/$NEW_NAME"
+          done
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: release_artifacts/*.apk
+          generate_release_notes: true
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

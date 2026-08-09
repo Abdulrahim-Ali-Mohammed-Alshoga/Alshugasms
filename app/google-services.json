@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "598744937753",
+    "project_id": "msggo-admin",
+    "storage_bucket": "msggo-admin.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:598744937753:android:0ddfdd6d041b25ceb3c188",
+        "android_client_info": {
+          "package_name": "top.yztz.msggo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDqnhGKkjL7knxblzrSvszan0YvTwG4fLE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

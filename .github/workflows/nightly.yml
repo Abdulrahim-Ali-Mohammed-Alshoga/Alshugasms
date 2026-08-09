@@ -1,0 +1,70 @@
+name: Nightly Build
+
+on:
+#  schedule:
+#    - cron: '0 18 * * *' # 每天凌晨 2 点 (北京时间)
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  build:
+    name: Build Nightly APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew assembleRelease
+
+      - name: Sign APK
+        uses: r0adkll/sign-android-release@v1
+        id: sign_app
+        with:
+          releaseDirectory: app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.KEYSTORE }}
+          alias: ${{ secrets.KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: "34.0.0"
+
+      - name: Prepare Nightly Artifacts
+        run: |
+          mkdir -p nightly_artifacts
+          DATE=$(date +'%Y%m%d')
+          find app/build/outputs/apk/release -name "MsgGo-*-signed.apk" | while read -r apk; do
+            NAME=$(basename "$apk" | sed 's/-signed//')
+            NEW_NAME="${NAME%.apk}-nightly.apk"
+            mv "$apk" "nightly_artifacts/$NEW_NAME"
+          done
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-apks
+          path: nightly_artifacts/*.apk
+
+      - name: Update Nightly Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly
+          name: Nightly Build
+          body: |
+            This is an automated nightly build.
+            Built on: ${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}
+            Revision: ${{ github.sha }}
+          files: nightly_artifacts/*.apk
+          prerelease: true
+          make_latest: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

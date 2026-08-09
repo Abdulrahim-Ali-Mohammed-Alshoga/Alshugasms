@@ -1,0 +1,78 @@
+apply plugin: 'com.android.application'
+apply plugin: 'com.google.gms.google-services'
+
+android {
+    namespace "top.yztz.msggo"
+    compileSdk = 35
+    defaultConfig {
+        applicationId "top.yztz.msggo"
+        minSdkVersion 26
+        targetSdkVersion 35
+        versionCode 26000309
+        versionName "3.9"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+//        buildConfigField "long", "BUILD_TIME", "${System.currentTimeMillis()}L"
+//        multiDexEnabled true
+    }
+    buildFeatures {
+        buildConfig = true
+    }
+    buildTypes {
+        release {
+//            minifyEnabled true
+//            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    androidResources {
+        noCompress 'ttf', 'otf'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            def abi = filters.find { it.filterType == 'ABI' }?.identifier ?: "universal"
+            def typeSuffix = variant.buildType.name == 'release' ? "" : "-unsigned"
+            outputFileName = "MsgGo-${variant.versionName}-${abi}${typeSuffix}.apk"
+        }
+    }
+
+}
+
+repositories {
+    maven { url 'https://www.jitpack.io' }
+}
+
+
+dependencies {
+    implementation 'androidx.coordinatorlayout:coordinatorlayout:1.3.0'
+//    def dialogx_version = "0.0.49"
+//    implementation "com.kongzue.dialogx:DialogX:${dialogx_version}"
+//    implementation "androidx.work:work-runtime-ktx:2.8.1"
+//    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'androidx.core:core:1.15.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+    testImplementation 'junit:junit:4.13.2'
+    implementation 'com.google.android.material:material:1.13.0'
+
+//    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
+//    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+    implementation 'org.apache.poi:poi:5.2.3'
+    implementation 'org.apache.poi:poi-ooxml:5.2.3'
+//    implementation 'com.fasterxml:aalto-xml:1.3.2'
+    implementation 'androidx.recyclerview:recyclerview:1.4.0'
+//    implementation 'com.daimajia.numberprogressbar:library:1.4@aar'
+
+    implementation "io.noties.markwon:core:4.6.2"
+    implementation "io.noties.markwon:ext-tables:4.6.2"
+
+    implementation 'com.github.houbb:sensitive-word:0.29.4'
+    
+    // Firebase
+    implementation platform('com.google.firebase:firebase-bom:33.0.0')
+    implementation 'com.google.firebase:firebase-database'
+}

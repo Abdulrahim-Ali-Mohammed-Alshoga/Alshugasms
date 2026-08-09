@@ -1,0 +1,26 @@
+<!--
+  ~ Copyright (C) 2026 yztz
+  ~
+  ~ This program is free software; you can redistribute it and/or modify it under
+  ~ the terms of the GNU General Public License as published by the Free Software
+  ~ Foundation; either version 3 of the License, or (at your option) any later
+  ~ version.
+  ~
+  ~ This program is distributed in the hope that it will be useful, but WITHOUT ANY
+  ~ WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  ~ PARTICULAR PURPOSE. See the GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License along with
+  ~ this program.  If not, see <http://www.gnu.org/licenses/>.
+  ~
+  -->
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+  <path
+      android:pathData="M962.42,386.73h-123.86a350.94,350.94 0,0 0,-54.99 -92.95l62.59,-108.41a43.36,43.36 0,0 0,-15.87 -59.22L689.19,44.69a43.35,43.35 0,0 0,-59.22 15.87l-63.45,109.91a352.03,352.03 0,0 0,-105.61 0L397.47,60.56a43.35,43.35 0,0 0,-59.22 -15.87L197.15,126.15a43.36,43.36 0,0 0,-15.87 59.22l62.59,108.4a351.02,351.02 0,0 0,-54.99 92.96H65.03a43.35,43.35 0,0 0,-43.35 43.35v162.93a43.35,43.35 0,0 0,43.35 43.35h120.27a350.46,350.46 0,0 0,55.5 98.28l-59.51,103.08a43.35,43.35 0,0 0,15.87 59.22l141.1,81.47a43.36,43.36 0,0 0,59.22 -15.87l58.59,-101.49c38.09,6.36 77.22,6.36 115.31,0l58.59,101.49a43.36,43.36 0,0 0,59.22 15.87l141.1,-81.47a43.33,43.33 0,0 0,15.87 -59.22l-59.51,-103.08a350.28,350.28 0,0 0,55.5 -98.28h120.27a43.35,43.35 0,0 0,43.35 -43.35v-162.92a43.34,43.34 0,0 0,-43.34 -43.35zM708.22,516.15c0,107.25 -87.25,194.5 -194.5,194.5 -107.26,0 -194.5,-87.25 -194.5,-194.5s87.25,-194.5 194.5,-194.5c107.25,0 194.5,87.25 194.5,194.5z"
+      android:fillColor="@color/md_theme_primary"/>
+</vector>

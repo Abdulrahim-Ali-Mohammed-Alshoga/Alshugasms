@@ -1,0 +1,386 @@
+/*
+ * Copyright (C) 2026 yztz
+ *
+ * This program is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation; either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ * PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+package top.yztz.msggo.activities;
+
+import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import android.content.Intent;
+import android.os.Bundle;
+import android.telephony.SubscriptionInfo;
+import android.text.TextUtils;
+import android.util.Log;
+import android.util.SparseBooleanArray;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.textfield.TextInputLayout;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+import top.yztz.msggo.R;
+import top.yztz.msggo.adapters.ListAdapter;
+import top.yztz.msggo.data.DataModel;
+import top.yztz.msggo.data.Message;
+import top.yztz.msggo.data.SettingManager;
+import top.yztz.msggo.services.SMSSender;
+
+import top.yztz.msggo.util.FileUtil;
+import top.yztz.msggo.util.SensitiveWordUtil;
+import top.yztz.msggo.util.TextParser;
+import top.yztz.msggo.util.ToastUtil;
+import top.yztz.msggo.adapters.CheckboxAdapter;
+import android.widget.CheckBox;
+
+public class ChooserActivity extends AppCompatActivity {
+    private static final String TAG = "ChooserActivity";
+    private RecyclerView mRv;
+    private RecyclerView rvCheckbox;
+    private Button mSend;
+    private CheckBox cbSelectAll;
+    private MaterialToolbar topAppBar;
+    private TextView tvFileName, tvSimInfo, tvSelectionCount, tvEstimatedCost;
+    private LinearLayout layoutHeader;
+    private CheckboxAdapter checkboxAdapter;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        EdgeToEdge.enable(this);
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_chooser);
+
+        mRv = findViewById(R.id.rv_data);
+        rvCheckbox = findViewById(R.id.rv_checkbox);
+        mSend = findViewById(R.id.btn_send);
+        cbSelectAll = findViewById(R.id.cb_select_all);
+        topAppBar = findViewById(R.id.topAppBar);
+        tvFileName = findViewById(R.id.tv_file_name);
+        tvSimInfo = findViewById(R.id.tv_sim_info);
+        tvSelectionCount = findViewById(R.id.tv_selection_count);
+        tvEstimatedCost = findViewById(R.id.tv_estimated_cost);
+        layoutHeader = findViewById(R.id.layout_header);
+
+        final RecyclerView.LayoutManager manager = new LinearLayoutManager(this);
+        mRv.setLayoutManager(manager);
+        final ListAdapter adapter = new ListAdapter(this);
+        mRv.setAdapter(adapter);
+        adapter.setOnItemClickListener(position -> {
+            String template = DataModel.getTemplate();
+            Map<String, String> dataMap = DataModel.getRow(position);
+            String content = TextParser.parse(template, dataMap);
+            String recipient = dataMap.get(DataModel.getNumberColumn());
+
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle(getString(R.string.preview_title))
+                    .setMessage(getString(R.string.preview_msg_format,
+                            TextUtils.isEmpty(recipient) ? getString(R.string.unknown) : recipient,
+                            content))
+                    .setPositiveButton(getString(R.string.ok), null)
+                    .show();
+        });
+
+        final RecyclerView.LayoutManager checkboxManager = new LinearLayoutManager(this);
+        rvCheckbox.setLayoutManager(checkboxManager);
+        checkboxAdapter = new CheckboxAdapter(this);
+        rvCheckbox.setAdapter(checkboxAdapter);
+
+        checkboxAdapter.setOnSelectionChangedListener((position, isChecked) -> updateSelectionSummary());
+
+        // Synchronize scrolling
+        RecyclerView.OnScrollListener syncScrollListener = new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                if (recyclerView.getScrollState() != RecyclerView.SCROLL_STATE_IDLE) {
+                    if (recyclerView == mRv) {
+                        rvCheckbox.scrollBy(0, dy);
+                    } else if (recyclerView == rvCheckbox) {
+                        mRv.scrollBy(0, dy);
+                    }
+                }
+            }
+        };
+        mRv.addOnScrollListener(syncScrollListener);
+        rvCheckbox.addOnScrollListener(syncScrollListener);
+
+        // Select All Logic
+        cbSelectAll.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            checkboxAdapter.setAllCheckBoxChosen(isChecked);
+            updateSelectionSummary();
+        });
+
+        mSend.setOnClickListener(v -> {
+            ArrayList<Integer> itemIndices = new ArrayList<>();
+            SparseBooleanArray checkedMap = checkboxAdapter.getCheckedMap();
+            int itemCount = mRv.getAdapter() != null ? mRv.getAdapter().getItemCount() : 0;
+            for (int i = 0; i < itemCount; i++) {
+                if (checkedMap.get(i)) {
+                    itemIndices.add(i);
+                }
+            }
+
+            if (itemIndices.isEmpty()) {
+                ToastUtil.show(ChooserActivity.this, getString(R.string.no_recipients_selected));
+                return;
+            }
+
+            double rate = SettingManager.getSmsRate();
+            double cost = itemIndices.size() * rate;
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle(getString(R.string.confirm_send_title))
+                    .setMessage(getString(R.string.confirm_send_msg_format, itemIndices.size(), cost))
+                    .setPositiveButton(getString(R.string.send_now), (dialog, which) -> startSending(itemIndices))
+                    .setNegativeButton(getString(R.string.cancel), null)
+                    .show();
+        });
+
+
+
+        topAppBar.setNavigationOnClickListener(v -> finish());
+//        setupNumberColumnSelection();
+        setupInfoCard();
+        setupTableHeader();
+        updateSelectionSummary();
+
+    }
+
+    private void updateSelectionSummary() {
+        if (checkboxAdapter == null || tvSelectionCount == null || tvEstimatedCost == null) return;
+        
+        int total = DataModel.loaded() ? DataModel.getRowCount() : 0;
+        int selected = 0;
+        SparseBooleanArray checkedMap = checkboxAdapter.getCheckedMap();
+        for (int i = 0; i < total; i++) {
+            if (checkedMap.get(i)) {
+                selected++;
+            }
+        }
+
+        double rate = SettingManager.getSmsRate();
+        double cost = selected * rate;
+        tvSelectionCount.setText(String.format(Locale.getDefault(), "%d / %d", selected, total));
+        tvEstimatedCost.setText(String.format(Locale.getDefault(), "%.2f", cost));
+    }
+    
+    private void setupInfoCard() {
+        String path = DataModel.getPath();
+        if (!TextUtils.isEmpty(path)) {
+            File file = new File(path);
+            tvFileName.setText(file.getName());
+        }
+        
+        int subId = DataModel.getSubId();
+        assert subId != -1;
+        List<SubscriptionInfo> subs = SMSSender.getSubs(this);
+        String simName = getString(R.string.unknown_sim);
+        for (SubscriptionInfo sub : subs) {
+            Log.d(TAG, "sub id: " + sub.getSubscriptionId());
+            if (sub.getSubscriptionId() == subId) {
+                simName = getString(R.string.sim_slot_format, sub.getSimSlotIndex() + 1, sub.getCarrierName());
+                break;
+            }
+        }
+
+        tvSimInfo.setText(simName);
+    }
+    
+    private void setupTableHeader() {
+        String[] titles = DataModel.getTitles();
+        assert titles != null;
+        
+        layoutHeader.removeAllViews();
+        float density = getResources().getDisplayMetrics().density;
+        int width = (int) (130 * density); // Match updated layout_data_item width
+
+        // Ensure header background fills at least the screen width - handled by layout weight now
+        
+        for (String title : titles) {
+            TextView tv = new TextView(this);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(width, ViewGroup.LayoutParams.WRAP_CONTENT);
+            tv.setLayoutParams(params);
+            tv.setText(title);
+            tv.setGravity(Gravity.CENTER);
+            tv.setPadding(0, 16, 0, 16);
+            tv.setMaxLines(1);
+            tv.setEllipsize(TextUtils.TruncateAt.END);
+            tv.setTextAppearance(R.style.TextAppearance_Material3_LabelLarge);
+            layoutHeader.addView(tv);
+        }
+
+    }
+
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
+
+//    private void setupNumberColumnSelection() {
+//        if (!TextUtils.isEmpty(DataLoader.getNumberColumn())) {
+//            return;
+//        }
+//        new MaterialAlertDialogBuilder(this)
+//                .setTitle("哪列存储着号码？")
+//                .setItems(DataLoader.getTitles(), (dialog, which) -> {
+//                    DataLoader.setNumberColumn(DataLoader.getTitles()[which]);
+//                    ToastUtil.show(this, "号码列: " + DataLoader.getTitles()[which]);
+//                    dialog.dismiss();
+//                })
+//                .setCancelable(false)
+//                .show();
+//    }
+
+    private void startSending(ArrayList<Integer> itemIndices) {
+        String rawContent = DataModel.getTemplate();
+        String numberCol = DataModel.getNumberColumn();
+
+        List<Message> messages = new ArrayList<>();
+        for (int i : itemIndices) {
+            Map<String, String> tmp = DataModel.getRow(i);
+            String content = TextParser.parse(rawContent, tmp);
+            String phoneNumber = tmp.get(numberCol);
+            messages.add(new Message(phoneNumber, content));
+        }
+
+        // Start sensitive word check process
+        checkAndSendMessages(messages, 0);
+    }
+
+    /**
+     * Recursively check messages for sensitive words and prompt user for action if found.
+     * @param messages The list of messages to send
+     * @param index The current index being checked
+     */
+    private void checkAndSendMessages(List<Message> messages, int index) {
+        // Skip already-null (skipped) messages
+        while (index < messages.size() && messages.get(index) == null) {
+            index++;
+        }
+
+        if (index >= messages.size()) {
+            // All messages checked, filter out nulls and send
+            List<Message> validMessages = new ArrayList<>();
+            for (Message m : messages) {
+                if (m != null) {
+                    validMessages.add(m);
+                }
+            }
+            if (validMessages.isEmpty()) {
+                ToastUtil.show(this, R.string.sending_completed);
+                return;
+            }
+
+            String serPath = FileUtil.saveMessageArrayToFile(this, messages.toArray(new Message[0]));
+            if (TextUtils.isEmpty(serPath)) {
+                ToastUtil.show(this, R.string.unknown_error);
+                return;
+            }
+            Intent intent = new Intent(this, SendingActivity.class);
+            intent.putExtra("to_send", serPath);
+            startActivity(intent);
+            return;
+        }
+
+        Message message = messages.get(index);
+        List<String> sensitiveWords = SettingManager.isSensitiveWordFilterEnabled() ?
+                SensitiveWordUtil.findAll(message.getContent()) : Collections.EMPTY_LIST;
+
+        if (sensitiveWords.isEmpty()) {
+            // No sensitive words, proceed to next message
+            checkAndSendMessages(messages, index + 1);
+        } else {
+            // Sensitive words detected, show dialog
+            final int currentIndex = index;
+            String wordsDisplay = TextUtils.join(", ", sensitiveWords);
+
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle(getString(R.string.sensitive_word_detected_title))
+                    .setMessage(getString(R.string.sensitive_word_detected_msg, currentIndex + 1, wordsDisplay))
+                    .setCancelable(false)
+                    .setPositiveButton(getString(R.string.skip_message), (dialog, which) -> {
+                        // Skip this message
+                        messages.set(currentIndex, null);
+                        checkAndSendMessages(messages, currentIndex + 1);
+                    })
+                    .setNeutralButton(getString(R.string.edit_message), (dialog, which) -> {
+                        // Show edit dialog
+                        showEditMessageDialog(messages, currentIndex);
+                    })
+                    .setNegativeButton(getString(R.string.cancel_send), (dialog, which) -> {
+                        // Cancel entire sending process
+                        ToastUtil.show(this, getString(R.string.sending_cancelled));
+                    })
+                    .show();
+        }
+    }
+
+    /**
+     * Show a dialog to edit the message content. Re-checks for sensitive words after saving.
+     */
+    private void showEditMessageDialog(List<Message> messages, int index) {
+        Message message = messages.get(index);
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_text, null);
+        TextInputLayout container = dialogView.findViewById(R.id.edit_text_container);
+
+        EditText editText = dialogView.findViewById(R.id.edit_text);
+        editText.setText(message.getContent());
+        editText.setSelection(editText.getText().length());
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(getString(R.string.edit_message))
+                .setView(dialogView)
+                .setCancelable(false)
+                .setPositiveButton(getString(R.string.save), (dialog, which) -> {
+                    String newContent = editText.getText().toString();
+                    messages.set(index, new Message(message.getPhone(), newContent));
+                    // Re-check this message
+                    checkAndSendMessages(messages, index);
+                })
+                .setNegativeButton(getString(R.string.cancel), (dialog, which) -> {
+                    // Go back to the check dialog
+                    checkAndSendMessages(messages, index);
+                })
+                .show();
+    }
+
+
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.d(TAG, "onDestroy: ");
+    }
+}

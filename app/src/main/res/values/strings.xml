@@ -1,0 +1,197 @@
+<!--
+  ~ Copyright (C) 2026 yztz
+  ~
+  ~ This program is free software; you can redistribute it and/or modify it under
+  ~ the terms of the GNU General Public License as published by the Free Software
+  ~ Foundation; either version 3 of the License, or (at your option) any later
+  ~ version.
+  ~
+  ~ This program is distributed in the hope that it will be useful, but WITHOUT ANY
+  ~ WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  ~ PARTICULAR PURPOSE. See the GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License along with
+  ~ this program.  If not, see <http://www.gnu.org/licenses/>.
+  ~
+  -->
+
+<resources>
+    <string name="app_name">Alshugg sms</string>
+    <string name="app_description">A modern batch SMS utility</string>
+
+    <!-- General UI -->
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
+    <string name="help">Help</string>
+    <string name="loading">Loading…</string>
+    <string name="calculating">Calculating…</string>
+    <string name="switch_language">Language</string>
+    <string name="language_auto">Auto (System)</string>
+    <string name="language_prefix">Current: %1$s</string>
+    <string name="not_selected">Not selected</string>
+    <string name="unknown">Unknown</string>
+    <string name="unknown_error">Unknown error(%1$s)</string>
+
+    <!-- Main Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Home Fragment -->
+    <string name="import_excel">Import Table</string>
+    <string name="click_to_import">Tap to import Excel file</string>
+    <string name="select_number_column">Select Number Column</string>
+    <string name="edit_sms">Edit SMS</string>
+    <string name="no_template">Template not set</string>
+    <string name="select_sim">Select SIM Card</string>
+    <string name="click_to_select">Tap to select</string>
+    <string name="send_sms">Send SMS</string>
+    <string name="no_data_imported">No data imported</string>
+    <string name="send_section_title">Dashboard</string>
+    <string name="history_section_title">History</string>
+    <string name="empty_history">It\'s empty here~</string>
+
+    <!-- Setting Fragment -->
+    <string name="category_features">Features</string>
+    <string name="auto_open_editor">Auto Open Editor</string>
+    <string name="auto_open_editor_summary">Edit after import</string>
+    <string name="send_delay">Send Delay</string>
+    <string name="send_delay_summary">Delay between each SMS to avoid carrier blocks</string>
+    <string name="randomize_delay">Randomize Delay</string>
+    <string name="randomize_delay_summary">Wait a random time (min-current)</string>
+    <string name="sms_cost">SMS Rate</string>
+    <string name="sms_cost_summary">Calculate cost</string>
+    <string name="category_storage">Storage</string>
+    <string name="clear_cache">Clear Cache</string>
+    <string name="category_appearance">Appearance</string>
+    <string name="dark_mode">Dark Mode</string>
+    <string name="dark_mode_summary_on">Always on</string>
+    <string name="dark_mode_summary_off">Always off</string>
+    <string name="dark_mode_summary_system">Follow system</string>
+    <string name="dark_mode_option_on">On</string>
+    <string name="dark_mode_option_off">Off</string>
+    <string name="dark_mode_option_system">Follow System</string>
+    <string name="category_others">Others</string>
+    <string name="debug_log">Debug Logs</string>
+    <string name="about_app">About App</string>
+    <string name="sensitive_word_filter">Sensitive Word Filter</string>
+    <string name="sensitive_word_filter_summary">Block messages containing sensitive words</string>
+    <string name="sensitive_word_filter_dev_title">For Development Use Only</string>
+    <string name="sensitive_word_filter_dev_msg">Disabling the sensitive word filter is intended for development and testing only. Sending messages with sensitive words may be intercepted or violate regulations. Are you sure you want to disable it?</string>
+    <string name="disable">Disable</string>
+
+    <!-- About Activity -->
+    <string name="version_format">Version %s</string>
+    <string name="source_code">Source Code</string>
+    <string name="feedback">Feedback</string>
+    <string name="disclaimer">Disclaimer</string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="license">License</string>
+    <string name="made_by">Made with ❤️ by Yztz</string>
+    <string name="visit_source_code">Visit Source Code</string>
+    <string name="going_to_url">Proceeding to %s</string>
+    <string name="visit">Visit</string>
+    <string name="check_update">Check for Updates</string>
+
+    <!-- Edit Activity -->
+    <string name="edit_info">Edit Info</string>
+
+    <!-- Sending Dialog -->
+    <string name="sending">Sending</string>
+
+    <!-- Messages & Toasts -->
+    <string name="permission_denied_exit">Permission denied, app will exit</string>
+    <string name="disagree_exit">Disagree &amp; Exit</string>
+    <string name="read_and_agree">Read &amp; Agree</string>
+    <string name="no_sim_found_exit">No SIM card found for sending SMS, exiting</string>
+    <string name="load_success">Data loaded successfully</string>
+    <string name="load_failed">Data load failed: %s</string>
+    <string name="external_link_detected">External link detected, loading: %s</string>
+    <string name="history_data_found">History data found</string>
+    <string name="cannot_open_link">Cannot open link: %s</string>
+    <string name="fgs_timeout_msg">6-hour service limit reached, stopping…</string>
+    <string name="sending_cancelled">Sending task cancelled</string>
+    <string name="preparing_to_send">Preparing…</string>
+    <string name="sending_completed">Completed</string>
+    <string name="sms_sent_success">#%1$d [%2$s] Sent successfully</string>
+    <string name="sms_sent_failed">#%1$d [%2$s] Failed (Code %3$d)</string>
+    <string name="message_send_failed">Message send failed</string>
+    <string name="error_mac_not_allowed">Device MAC is not allowed to send messages</string>
+    <string name="error_mac_not_found">Device MAC could not be read</string>
+    <string name="error_date_not_allowed">Sending is not allowed after the configured date</string>
+    <string name="auth_locked_message">التطبيق مقفل. يرجى إرسال هذا الكود للمطور لتفعيل نسختك.</string>
+    <string name="copied_to_clipboard">تم نسخ الكود إلى الحافظة.</string>
+    <string name="error_no_device_id">لم يتم العثور على كود الجهاز.</string>
+    <string name="notification_title">MsgGo SMS Batch</string>
+    <string name="notification_progress_format">Sending: %1$d/%2$d</string>
+    <string name="select_number_column_dialog_title">Select Number Column</string>
+    <string name="preview_title">Message Preview</string>
+    <string name="preview_msg_format">Recipient: %1$s\nPreview:\n%2$s</string>
+    <string name="no_recipients_selected">No recipients selected yet~</string>
+    <string name="confirm_send_title">Confirm Sending</string>
+    <string name="confirm_send_msg_format">Are you sure you want to send SMS to %1$d selected contacts?\nEstimated cost: $%2$.2f</string>
+    <string name="send_now">Send Now</string>
+    <string name="unknown_sim">Unknown SIM Card</string>
+    <string name="sim_slot_format">Slot %1$d · %2$s</string>
+    <string name="done">Done</string>
+    <string name="cancelled">Cancelled</string>
+    <string name="close">Close</string>
+    <string name="service_start_failed">service start failed</string>
+    <string name="all_messages_confirmed">All messages sent and confirmed</string>
+    <string name="error_no_header">Header row not found (empty content)</string>
+    <string name="error_non_continuous_columns">Data columns are not continuous</string>
+    <string name="error_empty_content">Content is empty</string>
+    <string name="error_empty_title_column">Header column exists empty</string>
+    <string name="error_load_data_first">Please import data first</string>
+    <string name="error_edit_content_first">Please edit SMS content first</string>
+    <string name="error_no_sim">No available SIM card detected</string>
+    <string name="select_sim_dialog_title">Select Sending SIM Card</string>
+    <string name="selected_prefix">Selected: %1$s</string>
+    <string name="no_available_sim">No SIM available</string>
+    <string name="data_ready_format">Ready to send</string>
+    <string name="no_template_content">No template content</string>
+    <string name="set_sms_rate_title">Set SMS Rate</string>
+    <string name="error_invalid_rate_range">Please enter a number between 0–10</string>
+    <string name="error_invalid_number">Please enter a valid number</string>
+    <string name="confirm_clear_cache_msg">Are you sure you want to clear app cache and history?</string>
+    <string name="clear">Clear</string>
+    <string name="cache_cleared">Cache cleared</string>
+    <string name="export_log_failed_prefix">Export failed: %1$s</string>
+    <string name="current_cache_size_prefix">Current cache size: %1$s</string>
+    <string name="error_calc_cache_size">Unable to calculate cache size</string>
+    <string name="variable_selection_title">Select Variable</string>
+    <string name="confirm_clear_title">Confirm Clear</string>
+    <string name="confirm_clear_msg">Your edits will be lost forever (really!)</string>
+    <string name="edit_unsaved_title">Unsaved Edits</string>
+    <string name="edit_unsaved_msg">Are you sure you want to leave without saving?</string>
+    <string name="error_import_data_first">Please import data first</string>
+    <string name="xiaomi_permission_title">SIM Access Restricted</string>
+    <string name="xiaomi_permission_msg">Xiaomi system has restricted phone information access. Please go to settings to manually enable \"Phone\" permission and ensure no \"Blank Pass\" is active for SMS and Phone.</string>
+    <string name="go_to_settings">Go to Settings</string>
+    <string name="exit_app">Exit App</string>
+    <string name="currency_sms_rate">$ %1$.2f</string>
+    <string name="save_success">saved</string>
+    <string name="title_home">Send</string>
+    <string name="title_settings">Settings</string>
+    <string name="currency_unit">$</string>
+    <string name="hint_sms_rate">input sms rate</string>
+    <string name="slot_description">slot %1$d · %2$s</string>
+    <string name="tip_sms_preview">tip: click the row to preview</string>
+    <string name="preview_and_send">Preview &amp; Send</string>
+    <string name="edit_hint">Write something~</string>
+    <string name="file_too_large">File size exceeds limit(> %1$s)</string>
+    <string name="file_too_much_row">File contains too many rows(> %1$d)</string>
+    <string name="deduplication_result">Removed %1$d duplicated recipients</string>
+
+    <string name="sensitive_word_detected_title">Sensitive Word Detected</string>
+    <string name="sensitive_word_detected_msg">Message #%1$d contains sensitive words:\n\n%2$s\n\n(Incorrect detection? Open a new issue.)</string>
+    <string name="skip_message">Skip</string>
+    <string name="edit_message">Edit Message</string>
+    <string name="cancel_send">Cancel Send</string>
+    <string name="pending">Pending</string>
+    <string name="waiting">Waiting</string>
+    <string name="submitted">Submitted</string>
+    <string name="sent">Sent</string>
+    <string name="failed">Failed</string>
+    <string name="paused">Paused</string>
+</resources>

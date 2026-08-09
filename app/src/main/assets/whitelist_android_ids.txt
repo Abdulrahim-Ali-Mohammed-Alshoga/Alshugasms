@@ -1,0 +1,6 @@
+# Whitelist of authorized Android device IDs.
+# Add one Android ID per line.
+# Example: 4a8b9c2d1e3f
+
+# Paste the authorized Android ID here:
+8f6dc762c55dd199
