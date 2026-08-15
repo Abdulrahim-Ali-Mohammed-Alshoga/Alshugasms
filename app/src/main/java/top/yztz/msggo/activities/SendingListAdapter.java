@@ -83,6 +83,12 @@ public class SendingListAdapter extends RecyclerView.Adapter<SendingListAdapter.
 
         holder.tvPhone.setText(message.getPhone());
         holder.tvContent.setText(message.getContent().replace('\n', ' '));
+        
+        // عرض سبب الفشل إذا كانت الرسالة فاشلة
+        if (message.getState() == SendingActivity.MessageState.FAILED && message.getFailReason() != null) {
+            holder.tvContent.setText(message.getFailReason());
+        }
+        
         holder.transitionToState(message.getState(), false); // false = 不使用动画
     }
 

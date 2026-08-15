@@ -26,6 +26,7 @@ public class Message implements Serializable {
     private String content;
 
     private SendingActivity.MessageState state = SendingActivity.MessageState.PENDING;
+    private transient String failReason;
 
     public Message(String phone, String content) {
         this.phone = phone;
@@ -59,6 +60,14 @@ public class Message implements Serializable {
 
     public void setState(SendingActivity.MessageState state) {
         this.state = state;
+    }
+
+    public String getFailReason() {
+        return failReason;
+    }
+
+    public void setFailReason(String failReason) {
+        this.failReason = failReason;
     }
 }
 

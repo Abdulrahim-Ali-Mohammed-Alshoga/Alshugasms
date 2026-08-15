@@ -88,6 +88,9 @@ public class SendingActivity extends AppCompatActivity implements MessageService
     private final Map<Integer, Integer> retryCountMap = new HashMap<>();
     // Timeout tracking: maps message index -> timeout runnable
     private final Map<Integer, Runnable> timeoutRunnableMap = new HashMap<>();
+    // قائمة الرسائل الفاشلة المنتظرة لإعادة الإرسال في نهاية القائمة
+    private final java.util.LinkedList<Integer> retryQueue = new java.util.LinkedList<>();
+    private boolean isProcessingRetryQueue = false;
 
     public enum SendingState {
         IDLE, SENDING, PAUSED, COMPLETED, CANCELLED
@@ -229,20 +232,60 @@ public class SendingActivity extends AppCompatActivity implements MessageService
         if (isStopped) return;
         if (isPaused) return;
         if (currentIndex >= messages.size()) {
-            // All submitted, wait for confirmations
-            checkCompletion();
+            // كل الرسائل الأصلية اكتملت، تحقق من قائمة إعادة المحاولة
+            processRetryQueue();
             return;
         }
 
         updateMessageState(currentIndex, MessageState.WAITING);
+        scheduleWithDelay(this::executeCurrentSend);
+    }
 
+    private void scheduleWithDelay(Runnable action) {
         int targetDelay = delay;
-        if (randomize && delay > 8000) {
-            targetDelay = (int) (8000 + Math.random() * (delay - 8000));
+        if (randomize) {
+            // عشوائي ±2 ثوانٍ حول القيمة المختارة
+            int variation = 2000;
+            int minDelay = Math.max(6000, delay - variation);
+            int maxDelay = delay + variation;
+            targetDelay = (int) (minDelay + Math.random() * (maxDelay - minDelay));
         }
 
-        Log.d(TAG, "Scheduling message " + currentIndex + " with delay " + targetDelay + "ms");
-        handler.postDelayed(this::executeCurrentSend, targetDelay);
+        Log.d(TAG, "Scheduling with delay " + targetDelay + "ms");
+        handler.postDelayed(action, targetDelay);
+    }
+
+    /**
+     * معالجة قائمة الرسائل الفاشلة — ترسلها واحدة واحدة مع نفس التأخير
+     */
+    private void processRetryQueue() {
+        if (isStopped || isPaused) return;
+        if (retryQueue.isEmpty()) {
+            // لا توجد رسائل فاشلة، تحقق من الاكتمال
+            checkCompletion();
+            return;
+        }
+
+        isProcessingRetryQueue = true;
+        int index = retryQueue.poll();
+        int retries = retryCountMap.getOrDefault(index, 0);
+
+        if (retries >= MAX_RETRIES) {
+            // استنفذ كل المحاولات — فشل نهائي
+            Log.w(TAG, "Message " + index + " failed after " + MAX_RETRIES + " retries. Marking as failed.");
+            updateMessageState(index, MessageState.FAILED);
+            confirmedCount++;
+            updateProgress(confirmedCount, messages.size(), tvConfirmedCount, progressConfirmed);
+            // تابع لبقية قائمة الإعادة
+            processRetryQueue();
+            return;
+        }
+
+        retryCountMap.put(index, retries + 1);
+        Log.i(TAG, "Retry queue: sending message " + index + " (attempt " + (retries + 1) + "/" + MAX_RETRIES + ")");
+
+        updateMessageState(index, MessageState.WAITING);
+        scheduleWithDelay(() -> executeRetrySend(index));
     }
 
     private void executeCurrentSend() {
@@ -318,8 +361,9 @@ public class SendingActivity extends AppCompatActivity implements MessageService
     }
 
     private void checkCompletion() {
-        if (currentIndex >= messages.size() && confirmedCount >= messages.size()) {
+        if (currentIndex >= messages.size() && retryQueue.isEmpty() && confirmedCount >= messages.size()) {
             currentState = SendingState.COMPLETED;
+            isProcessingRetryQueue = false;
             // Cancel all pending timeout runnables
             for (Runnable r : timeoutRunnableMap.values()) {
                 handler.removeCallbacks(r);
@@ -335,12 +379,19 @@ public class SendingActivity extends AppCompatActivity implements MessageService
 
     // --- Retry Logic ---
 
-    private void retryMessage(int index) {
+    /**
+     * إضافة الرسالة الفاشلة لنهاية قائمة الإعادة بدل إعادة المحاولة فوراً
+     */
+    private void enqueueForRetry(int index, String reason) {
         if (isStopped) return;
+        if (index < 0 || index >= messages.size()) return;
+
+        Message msg = messages.get(index);
+        msg.setFailReason(reason);
 
         int retries = retryCountMap.getOrDefault(index, 0);
         if (retries >= MAX_RETRIES) {
-            // Max retries reached, mark as permanently failed
+            // استنفذ كل المحاولات — فشل نهائي
             Log.w(TAG, "Message " + index + " failed after " + MAX_RETRIES + " retries. Marking as failed.");
             updateMessageState(index, MessageState.FAILED);
             confirmedCount++;
@@ -349,21 +400,24 @@ public class SendingActivity extends AppCompatActivity implements MessageService
             return;
         }
 
-        retryCountMap.put(index, retries + 1);
-        Log.i(TAG, "Retrying message " + index + " (attempt " + (retries + 1) + "/" + MAX_RETRIES + ")");
+        Log.i(TAG, "Message " + index + " queued for retry (attempt " + (retries + 1) + "/" + MAX_RETRIES + ") reason: " + reason);
+        retryQueue.add(index);
 
-        // Wait 5 seconds before retry
-        handler.postDelayed(() -> {
-            if (isStopped) return;
-            if (!isBound || service == null) return;
-            
-            Message msg = messages.get(index);
-            updateMessageState(index, MessageState.SUBMITTED);
-            service.sendOne(msg, index, subId);
-            
-            // Start a new confirmation timeout for this retry
-            startConfirmationTimeout(index);
-        }, 5000);
+        // إذا انتهت الرسائل الأصلية، ابدأ معالجة قائمة الإعادة
+        if (currentIndex >= messages.size() && !isProcessingRetryQueue) {
+            processRetryQueue();
+        }
+    }
+
+    private void executeRetrySend(int index) {
+        if (isStopped || isPaused) return;
+        if (!isBound || service == null) return;
+        if (index < 0 || index >= messages.size()) return;
+
+        Message msg = messages.get(index);
+        updateMessageState(index, MessageState.SUBMITTED);
+        service.retrySend(msg, index, subId);
+        startConfirmationTimeout(index);
     }
 
     private void startConfirmationTimeout(int index) {
@@ -375,8 +429,8 @@ public class SendingActivity extends AppCompatActivity implements MessageService
 
         Runnable timeoutRunnable = () -> {
             timeoutRunnableMap.remove(index);
-            Log.w(TAG, "Confirmation timeout for message " + index + ". Retrying...");
-            retryMessage(index);
+            Log.w(TAG, "Confirmation timeout for message " + index + ". Adding to retry queue...");
+            enqueueForRetry(index, "انتهى وقت الانتظار (بدون رد)");
         };
 
         timeoutRunnableMap.put(index, timeoutRunnable);
@@ -416,11 +470,16 @@ public class SendingActivity extends AppCompatActivity implements MessageService
                 updateProgress(confirmedCount, messages.size(), tvConfirmedCount, progressConfirmed);
                 // Increment Firebase sent count only for successfully delivered messages
                 new FirebaseHelper(SendingActivity.this).incrementSentCount(1);
-                checkCompletion();
+                // إذا كنا نعالج قائمة الإعادة، تابع للرسالة التالية
+                if (isProcessingRetryQueue) {
+                    processRetryQueue();
+                } else {
+                    checkCompletion();
+                }
             } else {
-                // Message failed, retry it
-                Log.w(TAG, "Message " + index + " send failed. Will retry.");
-                retryMessage(index);
+                // الرسالة فشلت — أضفها لنهاية قائمة الإعادة
+                Log.w(TAG, "Message " + index + " send failed. Adding to retry queue.");
+                enqueueForRetry(index, "تم رفض الرسالة من الشبكة");
             }
         });
     }
@@ -435,9 +494,9 @@ public class SendingActivity extends AppCompatActivity implements MessageService
                 handler.removeCallbacks(timeout);
             }
 
-            // Retry the message
-            Log.w(TAG, "Message " + index + " failed with reason: " + reason + ". Will retry.");
-            retryMessage(index);
+            // الرسالة فشلت — أضفها لنهاية قائمة الإعادة
+            Log.w(TAG, "Message " + index + " failed with reason: " + reason + ". Adding to retry queue.");
+            enqueueForRetry(index, reason != null ? reason : "فشل غير معروف");
         });
     }
 

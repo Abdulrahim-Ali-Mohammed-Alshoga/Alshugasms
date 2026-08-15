@@ -133,6 +133,14 @@ public class MessageService extends Service {
     }
 
     /**
+     * إعادة إرسال رسالة فاشلة بدون تحديث العدادات أو إرسال إشعار onMessageSubmitted
+     */
+    public void retrySend(Message message, int index, int subId) {
+        SMSSender.sendMessage(getApplicationContext(), message.getContent(), message.getPhone(), subId, index);
+        Log.d(TAG, "Retrying message " + (index + 1) + "/" + totalMessages);
+    }
+
+    /**
      * Update notification to show paused state.
      */
     public void notifyPaused() {

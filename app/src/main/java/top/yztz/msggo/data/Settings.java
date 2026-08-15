@@ -36,7 +36,7 @@ public class Settings {
     // language
     public static final String LANGUAGE_DEFAULT = "auto";
 
-    public static final int EXCEL_ROW_COUNT_MAX = 500;
+    public static final int EXCEL_ROW_COUNT_MAX = 600;
     public static final long EXCEL_FILE_SIZE_MAX = 50 * 1024 * 1024; // 50MB
 
 }
