@@ -63,7 +63,7 @@ import top.yztz.msggo.util.ToastUtil;
 public class SettingFrag extends Fragment {
     private static final String TAG = "SettingFrag";
     private Context context;
-    private MaterialSwitch mSwitchAutoEditor, mSwitchRandomizeDelay, mSwitchSensitiveWord;
+    private MaterialSwitch mSwitchAutoEditor, mSwitchCompletionAlert, mSwitchSensitiveWord;
     private MaterialCardView mCardClearCache;
     private View mRowExportLog, mRowAboutApp, mRowLanguage, mRowCheckUpdate, mRowDarkMode;
     private TextView mTvCache, mTvDelayValue, mTvSmsRateValue, mTvLanguage, mTvDarkModeSummary;
@@ -91,7 +91,7 @@ public class SettingFrag extends Fragment {
 
         mTvDelayValue = view.findViewById(R.id.tv_delay_value);
         mSwitchAutoEditor = view.findViewById(R.id.switch_auto_editor);
-        mSwitchRandomizeDelay = view.findViewById(R.id.switch_randomize_delay);
+        mSwitchCompletionAlert = view.findViewById(R.id.switch_completion_alert);
         mTvCache = view.findViewById(R.id.tv_cache);
         mCardClearCache = view.findViewById(R.id.card_clear_cache);
         mCardSmsRate = view.findViewById(R.id.card_sms_rate);
@@ -122,9 +122,9 @@ public class SettingFrag extends Fragment {
             }
         });
 
-        mSwitchRandomizeDelay.setOnCheckedChangeListener((buttonView, isChecked) -> {
+        mSwitchCompletionAlert.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (!isUpdatingUI) {
-                SettingManager.setRandomizeDelay(isChecked);
+                SettingManager.setCompletionAlertEnabled(isChecked);
             }
         });
 
@@ -357,7 +357,7 @@ public class SettingFrag extends Fragment {
 
         // Set switches
         mSwitchAutoEditor.setChecked(SettingManager.autoEnterEditor());
-        mSwitchRandomizeDelay.setChecked(SettingManager.isRandomizeDelay());
+        mSwitchCompletionAlert.setChecked(SettingManager.isCompletionAlertEnabled());
         mSwitchSensitiveWord.setChecked(SettingManager.isSensitiveWordFilterEnabled());
 
         // Display dark mode summary

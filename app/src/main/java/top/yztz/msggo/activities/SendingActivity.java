@@ -20,17 +20,25 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.media.MediaPlayer;
+import android.media.RingtoneManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.WindowManager;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.OnBackPressedCallback;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -91,6 +99,10 @@ public class SendingActivity extends AppCompatActivity implements MessageService
     // قائمة الرسائل الفاشلة المنتظرة لإعادة الإرسال في نهاية القائمة
     private final java.util.LinkedList<Integer> retryQueue = new java.util.LinkedList<>();
     private boolean isProcessingRetryQueue = false;
+
+    // Alert upon completion
+    private MediaPlayer completionMediaPlayer = null;
+    private Vibrator completionVibrator = null;
 
     public enum SendingState {
         IDLE, SENDING, PAUSED, COMPLETED, CANCELLED
@@ -223,6 +235,7 @@ public class SendingActivity extends AppCompatActivity implements MessageService
     // --- Sending Logic ---
 
     private void startSending() {
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         currentState = SendingState.SENDING;
         updateUI();
         sendNextMessage();
@@ -246,7 +259,7 @@ public class SendingActivity extends AppCompatActivity implements MessageService
         if (randomize) {
             // عشوائي ±2 ثوانٍ حول القيمة المختارة
             int variation = 2000;
-            int minDelay = Math.max(6000, delay - variation);
+            int minDelay = Math.max(4000, delay - variation);
             int maxDelay = delay + variation;
             targetDelay = (int) (minDelay + Math.random() * (maxDelay - minDelay));
         }
@@ -308,6 +321,7 @@ public class SendingActivity extends AppCompatActivity implements MessageService
         isPaused = true;
         handler.removeCallbacksAndMessages(null);
         currentState = SendingState.PAUSED;
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         if (currentIndex < messages.size()) {
             updateMessageState(currentIndex, MessageState.PAUSED);
         }
@@ -319,6 +333,7 @@ public class SendingActivity extends AppCompatActivity implements MessageService
     private void resumeSending() {
         isPaused = false;
         currentState = SendingState.SENDING;
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         if (isBound) service.notifyResumed();
         updateUI();
         sendNextMessage();
@@ -326,8 +341,10 @@ public class SendingActivity extends AppCompatActivity implements MessageService
     }
 
     private void stopSending() {
+        stopCompletionAlert();
         isStopped = true;
         handler.removeCallbacksAndMessages(null);
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         // Cancel all pending timeout runnables
         for (Runnable r : timeoutRunnableMap.values()) {
             handler.removeCallbacks(r);
@@ -364,6 +381,7 @@ public class SendingActivity extends AppCompatActivity implements MessageService
         if (currentIndex >= messages.size() && retryQueue.isEmpty() && confirmedCount >= messages.size()) {
             currentState = SendingState.COMPLETED;
             isProcessingRetryQueue = false;
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             // Cancel all pending timeout runnables
             for (Runnable r : timeoutRunnableMap.values()) {
                 handler.removeCallbacks(r);
@@ -374,7 +392,101 @@ public class SendingActivity extends AppCompatActivity implements MessageService
             }
             updateUI();
             Log.i(TAG, "All messages sent and confirmed!");
+
+            // بدء التنبيه المتكرر (صوت واهتزاز) إذا كان مفعلاً في الإعدادات
+            if (SettingManager.isCompletionAlertEnabled()) {
+                startCompletionAlert();
+            }
+            showCompletionDialog();
         }
+    }
+
+    private void startCompletionAlert() {
+        // تشغيل الاهتزاز المتكرر
+        try {
+            completionVibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+            if (completionVibrator != null && completionVibrator.hasVibrator()) {
+                long[] pattern = {0, 600, 400, 600, 1000};
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    completionVibrator.vibrate(VibrationEffect.createWaveform(pattern, 0));
+                } else {
+                    completionVibrator.vibrate(pattern, 0);
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Error starting vibration alert", e);
+        }
+
+        // تشغيل صوت التنبيه المتكرر
+        try {
+            Uri notificationUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            if (notificationUri == null) {
+                notificationUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+            }
+            if (notificationUri != null) {
+                completionMediaPlayer = MediaPlayer.create(this, notificationUri);
+                if (completionMediaPlayer != null) {
+                    completionMediaPlayer.setLooping(true);
+                    completionMediaPlayer.start();
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Error starting audio alert", e);
+        }
+    }
+
+    private void stopCompletionAlert() {
+        if (completionMediaPlayer != null) {
+            try {
+                if (completionMediaPlayer.isPlaying()) {
+                    completionMediaPlayer.stop();
+                }
+                completionMediaPlayer.release();
+            } catch (Exception ignored) {}
+            completionMediaPlayer = null;
+        }
+        if (completionVibrator != null) {
+            try {
+                completionVibrator.cancel();
+            } catch (Exception ignored) {}
+            completionVibrator = null;
+        }
+    }
+
+    private void showCompletionDialog() {
+        if (isFinishing() || isDestroyed()) return;
+
+        int successCount = 0;
+        int failedCount = 0;
+        for (Message msg : messages) {
+            if (msg.getState() == MessageState.SENT) {
+                successCount++;
+            } else if (msg.getState() == MessageState.FAILED) {
+                failedCount++;
+            }
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("✅ تم إرسال ").append(successCount).append(" رسالة بنجاح.");
+        if (failedCount > 0) {
+            sb.append("\n❌ فشل إرسال ").append(failedCount).append(" رسالة.");
+        }
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setTitle("🎉 اكتمل إرسال الدفعة!")
+                .setMessage(sb.toString())
+                .setCancelable(false)
+                .setPositiveButton("الرئيسية", (d, which) -> {
+                    stopCompletionAlert();
+                    navigateToHome();
+                })
+                .setNegativeButton("مراجعة القائمة", (d, which) -> {
+                    stopCompletionAlert();
+                })
+                .create();
+
+        dialog.setOnDismissListener(d -> stopCompletionAlert());
+        dialog.show();
     }
 
     // --- Retry Logic ---
@@ -569,6 +681,7 @@ public class SendingActivity extends AppCompatActivity implements MessageService
     @Override
     protected void onStop() {
         super.onStop();
+        stopCompletionAlert();
         Log.d(TAG, "Stopped!");
     }
 
@@ -582,6 +695,8 @@ public class SendingActivity extends AppCompatActivity implements MessageService
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        stopCompletionAlert();
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         handler.removeCallbacksAndMessages(null);
         // Cancel all pending timeout runnables
         for (Runnable r : timeoutRunnableMap.values()) {

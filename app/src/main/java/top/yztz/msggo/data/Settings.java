@@ -21,11 +21,12 @@ public class Settings {
     // edit after import
     public static final boolean EDIT_AFTER_IMPORT_DEFAULT = false;
     // Send delay (ms)
-    public static final int SEND_DELAY_DEFAULT = 8000;
-    public static final int SEND_DELAY_MIN = 8000;
+    public static final int SEND_DELAY_DEFAULT = 6000;
+    public static final int SEND_DELAY_MIN = 6000;
     public static final int SEND_DELAY_MAX = 15000;
     public static final int SEND_DELAY_STEP_UNIT = 1000;
     public static final boolean SEND_DELAY_RANDOMIZATION_DEFAULT = true;
+    public static final boolean COMPLETION_ALERT_DEFAULT = true;
     // SMS rate
     public static final float SMS_RATE_DEFAULT = 0.1f;
     public static final float SMS_RATE_MIN = 0.0f;
@@ -36,7 +37,7 @@ public class Settings {
     // language
     public static final String LANGUAGE_DEFAULT = "auto";
 
-    public static final int EXCEL_ROW_COUNT_MAX = 600;
+    public static final int EXCEL_ROW_COUNT_MAX = 1150;
     public static final long EXCEL_FILE_SIZE_MAX = 50 * 1024 * 1024; // 50MB
 
 }

@@ -41,6 +41,7 @@ public class SettingManager {
     private static final String DISCLAIMER_ACCEPTED_KEY = "disclaimer_accepted";
     private static final String DARK_MODE_KEY = "dark_mode_v1";
     private static final String SENSITIVE_WORD_FILTER_KEY = "sensitive_word_filter_v1";
+    private static final String COMPLETION_ALERT_KEY = "completion_alert_v1";
 
     /** 深色模式值常量：跟随系统 */
     public static final int DARK_MODE_SYSTEM = AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM;
@@ -61,6 +62,7 @@ public class SettingManager {
         DefaultPropMap.put(DISCLAIMER_ACCEPTED_KEY, Settings.DISCLAIMER_ACCEPTED_DEFAULT);
         DefaultPropMap.put(DARK_MODE_KEY, DARK_MODE_SYSTEM);
         DefaultPropMap.put(SENSITIVE_WORD_FILTER_KEY, true);
+        DefaultPropMap.put(COMPLETION_ALERT_KEY, Settings.COMPLETION_ALERT_DEFAULT);
     }
 
     public static void init(Context context) {
@@ -162,6 +164,14 @@ public class SettingManager {
 
     public static void setSensitiveWordFilterEnabled(boolean enabled) {
         mEditor.putBoolean(SENSITIVE_WORD_FILTER_KEY, enabled).apply();
+    }
+
+    public static boolean isCompletionAlertEnabled() {
+        return mSp.getBoolean(COMPLETION_ALERT_KEY, Settings.COMPLETION_ALERT_DEFAULT);
+    }
+
+    public static void setCompletionAlertEnabled(boolean enabled) {
+        mEditor.putBoolean(COMPLETION_ALERT_KEY, enabled).apply();
     }
 
 }

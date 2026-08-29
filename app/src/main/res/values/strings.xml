@@ -59,6 +59,8 @@
     <string name="send_delay_summary">Delay between each SMS to avoid carrier blocks</string>
     <string name="randomize_delay">Randomize Delay</string>
     <string name="randomize_delay_summary">Wait a random time (min-current)</string>
+    <string name="completion_alert">Completion Alert</string>
+    <string name="completion_alert_summary">Play sound &amp; vibration when sending completes</string>
     <string name="sms_cost">SMS Rate</string>
     <string name="sms_cost_summary">Calculate cost</string>
     <string name="category_storage">Storage</string>
